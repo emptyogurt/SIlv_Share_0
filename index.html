@@ -1,8 +1,17 @@
+<!--
+  SIlv HTML Preview Viewer
+  제작자: SIlv (CaveDuck · referral nuu1LEELhX)
+
+  [이용 안내]
+  이 뷰어로 제작한 캐릭터/카드/페이지 등 "결과물"은 상업적으로 자유롭게 이용할 수 있습니다.
+  단, 이 뷰어 파일 자체 및 이를 수정한 버전을 판매하거나 유료로 배포하는 것은 금지합니다.
+-->
 <!doctype html>
 <html lang="ko">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="author" content="SIlv">
 <title>SIlv HTML Preview Viewer</title>
 <style>
 :root{
@@ -1348,10 +1357,45 @@ function initToolToggles(){
 }
 
 
+/* ---- SIlv 숨김 서명 (zero-width watermark) ----
+   화면에 보이는 텍스트 사이사이에 폭이 없는(zero-width) 유니코드 문자로
+   제작자 서명을 심어둠. 겉보기엔 아무 표시도 없지만, 콘솔에서
+   __verifySIlv() 를 실행하면 숨겨둔 문구가 그대로 복호화되어 나옴.
+   → 나중에 원본 여부를 증명할 때 쓸 수 있는 용도. */
+const SILV_SIGNATURE = '©SIlv · CaveDuck 원작자 서명 · nuu1LEELhX';
+function silvZWEncode(str){
+  return Array.from(str).map(ch=>{
+    const bin=ch.codePointAt(0).toString(2).padStart(16,'0');
+    return bin.split('').map(bit=>bit==='0'?'\u200b':'\u200c').join('');
+  }).join('\u200d');
+}
+function silvZWDecode(hidden){
+  return hidden.split('\u200d').filter(Boolean).map(chunk=>{
+    const bin=Array.from(chunk).map(c=>c==='\u200b'?'0':(c==='\u200c'?'1':'')).join('');
+    if(bin.length!==16)return '';
+    return String.fromCodePoint(parseInt(bin,2));
+  }).join('');
+}
+function initSilvWatermark(){
+  const hidden=silvZWEncode(SILV_SIGNATURE);
+  const wm=document.querySelector('.silvWatermark');
+  if(wm)wm.appendChild(document.createTextNode(hidden));
+  document.title=document.title+hidden;
+}
+window.__verifySIlv=function(){
+  const wm=document.querySelector('.silvWatermark');
+  const fromWatermark=wm?silvZWDecode(wm.textContent):'';
+  const fromTitle=silvZWDecode(document.title);
+  const result=fromWatermark||fromTitle||'(숨김 서명을 찾지 못했어요)';
+  console.log('%cSIlv 서명 확인:', 'color:#7fd9c4;font-weight:700;', result);
+  return result;
+};
+
 renderSnippets();
 initHexFields();
 initToolToggles();
 initCompactMode();
+initSilvWatermark();
 code.value=sample;
 render();
 applyPreviewEnv();
